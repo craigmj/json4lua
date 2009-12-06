@@ -1,0 +1,4 @@
+JSON4Lua and JSONRPC4Lua
+Version 0.9.30
+6 August 2009
+http://json.luaforge.net
