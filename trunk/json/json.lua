@@ -288,6 +288,18 @@ function decode_scanString(s,startPos)
   local endPos = startPos + 1
   local bEnded = false
   local stringLen = string.len(s)
+  local result = {}
+  local escapes = { 
+  	['b']='\b', 
+  	['f']='\f', 
+  	['n']='\n', 
+  	['r']='\r', 
+  	['t']='\t', 
+  	['/']='/', 
+  	['\\']='\\',
+  	['\"']='\"',
+  	['\'']='\''
+  	}
   repeat
     local curChar = string.sub(s,endPos,endPos)
     -- Character escaping is only used to escape the string delimiters
@@ -296,18 +308,25 @@ function decode_scanString(s,startPos)
         escaped = true
       else
         bEnded = curChar==startChar
+	    if (not bEnded) then
+		  -- Should do char conversion here
+		  table.insert(result, curChar)
+	    end
       end
     else
       -- If we're escaped, we accept the current character come what may
+      if (not (nil==escapes[curChar])) then
+        table.insert(result, escapes[curChar])
+      else
+        table.insert(result, "\\")
+        table.insert(result, curChar)
+      end
       escaped = false
     end
     endPos = endPos + 1
     base.assert(endPos <= stringLen+1, "String decoding failed: unterminated string at position " .. endPos)
   until bEnded
-  local stringValue = 'return ' .. string.sub(s, startPos, endPos-1)
-  local stringEval = base.loadstring(stringValue)
-  base.assert(stringEval, 'Failed to load string [ ' .. stringValue .. '] in JSON4Lua.decode_scanString at position ' .. startPos .. ' : ' .. endPos)
-  return stringEval(), endPos  
+  return table.concat(result,""), endPos
 end
 
 --- Scans a JSON string skipping all whitespace from the current start position.
