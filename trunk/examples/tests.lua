@@ -173,6 +173,7 @@ function testJSON4Lua()
   -- Tests that unicode chars are preserved with escapes
   s = [[ {"data":"This contains a \u00cd Unicode string"} ]]
   r,e = json.decode(s)
+  print(r.data)
   assert(compareData(r, {data="This contains a \\u00cd Unicode string"}));
   -- Test that all json escape sequences are converted
   s = [[ {"data":"This contains a \b\f\n\r\t\\\"\'"} ]];

@@ -136,9 +136,9 @@ end
 -- This just involves back-quoting inverted commas, back-quotes and newlines, I think ;-)
 -- @param s The string to return as a JSON encoded (i.e. backquoted string)
 -- @return The string appropriately escaped.
-local qrep = {["\\"]="\\\\", ['"']='\\"',['\n']='\\n',['\t']='\\t',["'"]="\\'"}
+local qrep = {["\\"]="\\\\", ['"']='\\"',['\n']='\\n',['\t']='\\t'}
 function encodeString(s)
-  return tostring(s):gsub('["\\\n\t\']',qrep)
+  return tostring(s):gsub('["\\\n\t]',qrep)
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
@@ -245,13 +245,22 @@ do
 	-- strings to be used in certain token tables
 	local strchars = "" -- all valid string characters (all except newlines)
 	local allchars = "" -- all characters that are valid in comments
+	--local escapechar = {}
 	for i=0,0xff do 
 		local c = string.char(i)
 		if c~="\n" and c~="\r" then strchars = strchars .. c end
 		allchars = allchars .. c
+		--escapechar[i] = "\\" .. string.char(i)
 	end
 	
-	
+--[[	
+	charstounescape = "\"\'\\bfnrt/";
+	unescapechars = "\"'\\\b\f\n\r\t\/";
+	for i=1,#charstounescape do
+		escapechar[ charstounescape:byte(i) ] = unescapechars:sub(i,i)
+	end
+]]--
+
 	-- obj key reader, expects the end of the object or a quoted string as key
 	init_token_table (tt_object_key) "object (' or \" or } or , expected)" 
 		:link(tt_singlequote_string) :to "'"
@@ -367,11 +376,28 @@ do
 		-- read a string, double and single quoted ones
 		local function read_string (tok)
 			local start = pos
+			--local returnString = {}
 			repeat
 				local t = next_token(tok)
-				if t == c_esc then pos = pos + 1 end -- jump over escaped chars, no matter what
+				if t == c_esc then 
+					--table.insert(returnString, js_string:sub(start, pos-2))
+					--table.insert(returnString, escapechar[ js_string:byte(pos) ])
+					pos = pos + 1
+					--start = pos
+				end -- jump over escaped chars, no matter what
 			until t == true
-			return js_string:sub(start,pos-2)
+			return (base.loadstring("return" .. js_string:sub(start-1, pos-1) ) ())
+
+			-- We consider the situation where no escaped chars were encountered separately,
+			-- and use the fastest possible return in this case.
+			
+			--if 0 == #returnString then
+			--	return js_string:sub(start,pos-2)
+			--else
+			--	table.insert(returnString, js_string:sub(start,pos-2))
+			--	return table.concat(returnString,"");
+			--end
+			--return js_string:sub(start,pos-2)
 		end
 		
 		local function read_num ()
