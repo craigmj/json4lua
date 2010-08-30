@@ -1,0 +1,13 @@
+#!/bin/bash
+if [ $1 ] 
+then	
+	REV=$1
+	cvs export -DNOW trunk
+	mv trunk json4lua-$REV
+	zip -r json4lua-$REV.zip json4lua-$REV
+	rm -rf json4lua-$REV
+else
+	echo "USAGE: zip VERSION"
+	echo "Creates json4lua-VERSION.zip with the latest version of json4lua"
+fi
+
