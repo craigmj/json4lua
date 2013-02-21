@@ -136,9 +136,9 @@ end
 -- This just involves back-quoting inverted commas, back-quotes and newlines, I think ;-)
 -- @param s The string to return as a JSON encoded (i.e. backquoted string)
 -- @return The string appropriately escaped.
-local qrep = {["\\"]="\\\\", ['"']='\\"',['\n']='\\n',['\t']='\\t'}
+local qrep = {["\\"]="\\\\", ['"']='\\"',['\r']='\\r',['\n']='\\n',['\t']='\\t'}
 function encodeString(s)
-  return tostring(s):gsub('["\\\n\t]',qrep)
+  return tostring(s):gsub('["\\\r\n\t]',qrep)
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
