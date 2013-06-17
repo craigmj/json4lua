@@ -308,7 +308,7 @@ do
 		:link(tt_ignore)             :to " \t\r\n"
 	
 	-- a value, pretty similar to tt_object_value
-	init_token_table (tt_array_seperator) "array ({ or [ or ' or \" or number or boolean or null expected)"
+	init_token_table (tt_array_seperator) "array ({ or [ or ] or ' or \" or number or boolean or null expected)"
 		:link(tt_object_key)         :to "{" 
 		:link(tt_array_seperator)    :to "[" 
 		:link(tt_singlequote_string) :to "'" 
@@ -318,6 +318,7 @@ do
 		:link(tt_boolean)            :to "tf" 
 		:link(tt_null)               :to "n" 
 		:link(tt_ignore)             :to " \t\r\n"
+		:link(tt_array_value)        :to "]"
 	
 	-- valid number tokens
 	init_token_table (tt_numeric) "number"
@@ -470,7 +471,11 @@ do
 			i = i or 1
 			-- loop until ...
 			while true do
-				o[i] = read_value(next_token(tt_array_seperator),tt_array_seperator)
+				local array_token = next_token(tt_array_seperator)
+				if t == tt_array_value then  -- ... we found a terminator token ']' 
+					return o 
+				end
+				o[i] = read_value(array_token, tt_array_seperator)
 				local t = next_token(tt_array_value)
 				if t == tt_comment_start then
 					t = read_comment(tt_array_value)
