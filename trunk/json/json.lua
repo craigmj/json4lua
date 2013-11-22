@@ -472,7 +472,7 @@ do
 			-- loop until ...
 			while true do
 				local array_token = next_token(tt_array_seperator)
-				if t == tt_array_value then  -- ... we found a terminator token ']' 
+				if array_token == tt_array_value then  -- ... we found a terminator token ']' 
 					return o 
 				end
 				o[i] = read_value(array_token, tt_array_seperator)
