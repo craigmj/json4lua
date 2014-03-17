@@ -54,6 +54,7 @@ local decode_scanObject
 local decode_scanString
 local decode_scanWhitespace
 local encodeString
+local decodeString
 local isArray
 local isEncodable
 
@@ -139,6 +140,16 @@ end
 local qrep = {["\\"]="\\\\", ['"']='\\"',['\r']='\\r',['\n']='\\n',['\t']='\\t'}
 function encodeString(s)
   return tostring(s):gsub('["\\\r\n\t]',qrep)
+end
+
+--- Decodes a given JSON string back to a Lua string
+-- The characters, escapable in JSON (see above function) are automatically
+-- escaped by Lua. Nevertheless, the "/" (slash) character CAN be escaped in
+-- JSON but CANNOT be escaped in Lua.
+-- @param s The string to return as proper Lua string
+-- @return A JSON encoded string
+function decodeString(s)
+  return (base.load("return " .. tostring(s):gsub("\\/", "/"))) ()
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
@@ -253,8 +264,8 @@ do
 		--escapechar[i] = "\\" .. string.char(i)
 	end
 	
+    charstounescape = "\"\'\\bfnrt/"
 --[[	
-	charstounescape = "\"\'\\bfnrt/";
 	unescapechars = "\"'\\\b\f\n\r\t\/";
 	for i=1,#charstounescape do
 		escapechar[ charstounescape:byte(i) ] = unescapechars:sub(i,i)
@@ -383,11 +394,15 @@ do
 				if t == c_esc then 
 					--table.insert(returnString, js_string:sub(start, pos-2))
 					--table.insert(returnString, escapechar[ js_string:byte(pos) ])
+					local c = js_string:sub(pos, pos)
+					if (not charstounescape:find(c)) then
+						error("invalid escape sequence '\\"..c.."' ("..location()..")")
+					end
 					pos = pos + 1
 					--start = pos
 				end -- jump over escaped chars, no matter what
 			until t == true
-			return (base.loadstring("return " .. js_string:sub(start-1, pos-1) ) ())
+			return decodeString(js_string:sub(start-1, pos-1))
 
 			-- We consider the situation where no escaped chars were encountered separately,
 			-- and use the fastest possible return in this case.
