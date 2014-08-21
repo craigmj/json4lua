@@ -329,13 +329,20 @@ end
 -- This just involves back-quoting inverted commas, back-quotes and newlines, I think ;-)
 -- @param s The string to return as a JSON encoded (i.e. backquoted string)
 -- @return The string appropriately escaped.
+
+local escapeList = {
+    ['"']  = '\\"',
+    ['\\'] = '\\\\',
+    ['/']  = '\\/', 
+    ['\b'] = '\\b',
+    ['\f'] = '\\f',
+    ['\n'] = '\\n',
+    ['\r'] = '\\r',
+    ['\t'] = '\\t'
+}
+
 function encodeString(s)
-  s = string.gsub(s,'\\','\\\\')
-  s = string.gsub(s,'"','\\"')
-  s = string.gsub(s,"'","\\'")
-  s = string.gsub(s,'\n','\\n')
-  s = string.gsub(s,'\t','\\t')
-  return s 
+ return s:gsub(".", escapeList)
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
