@@ -331,10 +331,7 @@ end
 -- @return The string appropriately escaped.
 function encodeString(s)
   s = string.gsub(s,'\\','\\\\')
-  s = string.gsub(s,'"','\\"')
-  s = string.gsub(s,"'","\\'")
-  s = string.gsub(s,'\n','\\n')
-  s = string.gsub(s,'\t','\\t')
+  s = string.gsub(s,'["/]','\\%1')
   return s 
 end
 
