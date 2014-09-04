@@ -272,6 +272,20 @@ function decode_scanObject(s,startPos)
   until false	-- infinite loop while key-value pairs are found
 end
 
+-- START SoniEx2
+-- Initialize some things used by decode_scanString
+-- You know, for efficiency
+local keepEscape = {}
+base.setmetatable(keepEscape, {__index = function(t,k)
+  -- skip "\" aka strip escape
+  return string.sub(k,2)
+end})
+-- string.gmatch is 5.1+, string.gfind is 5.0
+for c in (string.gmatch or string.gfind)([["\bfnrtu]],".") do
+  keepEscape["\\" .. c] = "\\" .. c
+end
+-- END SoniEx2
+
 --- Scans a JSON string from the opening inverted comma or single quote to the
 -- end of the string.
 -- Returns the string extracted as a Lua string,
@@ -283,31 +297,44 @@ end
 function decode_scanString(s,startPos)
   base.assert(startPos, 'decode_scanString(..) called without start position')
   local startChar = string.sub(s,startPos,startPos)
-  base.assert(startChar==[[']] or startChar==[["]],'decode_scanString called for a non-string')
-  local escaped = false
-  local endPos = startPos + 1
-  local bEnded = false
-  local stringLen = string.len(s)
-  repeat
-    local curChar = string.sub(s,endPos,endPos)
-    -- Character escaping is only used to escape the string delimiters
-    if not escaped then	
-      if curChar==[[\]] then
-        escaped = true
-      else
-        bEnded = curChar==startChar
-      end
+  -- START SoniEx2
+  local endPos
+  local oldStart = startPos
+  startPos,endPos = string.find(s, startChar .. ".-[^\\]" .. startChar, startPos)
+  base.assert(startPos == oldStart,'decode_scanString called for a non-string')
+  base.assert(startPos, "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
+  -- convert into valid Lua string
+  local ns = string.sub(s, startPos, endPos)
+  -- remove escapes Lua can't deal with
+  -- we use a function wrapper here for 5.0 compatibility
+  ns = string.gsub(ns, "\\.", function(k) return keepEscape[k] end)
+  -- parse \uXXXX TO UTF-8!!!
+  ns = string.gsub(ns, "\\u....", function(a)
+    a = string.sub(a, 3) -- strip \u
+    local n = base.tonumber(a, 16)
+    base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " for string at position " .. startPos .. " : " .. endPos)
+    -- math.floor(x/2^y) == lazy right shift
+    -- a % 2^b == bitwise_and(a, (2^b)-1)
+    -- 64 = 2^6
+    -- 4096 = 2^12 (or 2^6 * 2^6)
+    if n < 0x80 then
+      return string.char(n % 0x80)
+    elseif n < 0x800 then
+      -- [110x xxxx] [10xx xxxx]
+      return string.char(0xC0 + (math.floor(n/64) % 0x20)) .. string.char(0x80 + (n % 0x40))
     else
-      -- If we're escaped, we accept the current character come what may
-      escaped = false
+      -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
+      return string.char(0xE0 + (math.floor(n/4096) % 0x10)) .. string.char(0x80 + (math.floor(n/64) % 0x40)) .. string.char(0x80 + (n % 0x40))
     end
-    endPos = endPos + 1
-    base.assert(endPos <= stringLen+1, "String decoding failed: unterminated string at position " .. endPos)
-  until bEnded
-  local stringValue = 'return ' .. string.sub(s, startPos, endPos-1)
+  end)
+  -- END SoniEx2
+  
+  local stringValue = 'return ' .. ns -- SoniEx2: use ns instead of string.sub(s, startPos, endPos)
+  
   local stringEval = base.loadstring(stringValue)
-  base.assert(stringEval, 'Failed to load string [ ' .. stringValue .. '] in JSON4Lua.decode_scanString at position ' .. startPos .. ' : ' .. endPos)
-  return stringEval(), endPos  
+  base.assert(stringEval, 'Failed to load string [ ' .. stringValue .. '] in JSON4Lua.decode_scanString at position ' .. startPos .. ' : ' .. endPos .. "\nThis is a bug!")
+  
+  return stringEval(), endPos + 1 -- SoniEx2: we have to add 1 to endPos
 end
 
 --- Scans a JSON string skipping all whitespace from the current start position.
@@ -342,7 +369,7 @@ local escapeList = {
 }
 
 function encodeString(s)
- return s:gsub(".", escapeList)
+ return s:gsub(".", function(c) return escapeList[c] end) -- SoniEx2: 5.0 compat
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
