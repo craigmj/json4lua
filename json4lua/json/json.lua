@@ -307,13 +307,19 @@ function decode_scanString(s,startPos)
   local i,j = startPos,startPos
   while string.find(s, startChar, j+1) ~= j+1 do
     local oldj = j
-    i,j = string.find(ns, "\\.", j+1)
-    table.insert(t, string.sub(ns, oldj+1, i-1)
-    if string.sub(ns, i, j) == "\\u" then
-      local a = string.sub(ns,j+1,j+4)
+    i,j = string.find(s, "\\.", j+1)
+    local x,y = string.find(s, startChar, oldj+1)
+    if not i or x < i then
+      base.print(s, startPos, string.sub(s,startPos,oldj))
+      i,j = x,y-1
+      if not x then base.print(s, startPos, string.sub(s,startPos,oldj)) end
+    end
+    table.insert(t, string.sub(s, oldj+1, i-1))
+    if string.sub(s, i, j) == "\\u" then
+      local a = string.sub(s,j+1,j+4)
       j = j + 4
       local n = base.tonumber(a, 16)
-      base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " for string at position " .. startPos .. " : " .. endPos)
+      base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " at position " .. i .. " : " .. j)
       -- math.floor(x/2^y) == lazy right shift
       -- a % 2^b == bitwise_and(a, (2^b)-1)
       -- 64 = 2^6
@@ -330,10 +336,11 @@ function decode_scanString(s,startPos)
       end
       table.insert(t, x)
     else
-      table.insert(t, escapeSequences[string.sub(ns, i, j)])
+      table.insert(t, escapeSequences[string.sub(s, i, j)])
     end
   end
-  base.assert(string.find(s, startChar, j+1), "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
+  table.insert(t,string.sub(j, j+1))
+  base.assert(string.find(s, startChar, j+1), "String decoding failed: missing closing " .. startChar .. " at position " .. j .. "(for string at position " .. startPos .. ")")
   return table.concat(t,""), j+2
   -- END SoniEx2
 end
