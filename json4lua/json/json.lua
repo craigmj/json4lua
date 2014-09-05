@@ -275,15 +275,17 @@ end
 -- START SoniEx2
 -- Initialize some things used by decode_scanString
 -- You know, for efficiency
-local keepEscape = {}
-base.setmetatable(keepEscape, {__index = function(t,k)
+local escapeSequences = {
+  ["\\t"] = "\t",
+  ["\\f"] = "\f",
+  ["\\r"] = "\r",
+  ["\\n"] = "\n",
+  ["\\b"] = "\b"
+}
+base.setmetatable(escapeSequences, {__index = function(t,k)
   -- skip "\" aka strip escape
   return string.sub(k,2)
 end})
--- string.gmatch is 5.1+, string.gfind is 5.0
-for c in (string.gmatch or string.gfind)([["\bfnrtu]],".") do
-  keepEscape["\\" .. c] = "\\" .. c
-end
 -- END SoniEx2
 
 --- Scans a JSON string from the opening inverted comma or single quote to the
@@ -298,43 +300,42 @@ function decode_scanString(s,startPos)
   base.assert(startPos, 'decode_scanString(..) called without start position')
   local startChar = string.sub(s,startPos,startPos)
   -- START SoniEx2
-  local endPos
-  local oldStart = startPos
-  startPos,endPos = string.find(s, startChar .. ".-[^\\]" .. startChar, startPos)
-  base.assert(startPos == oldStart,'decode_scanString called for a non-string')
-  base.assert(startPos, "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
-  -- convert into valid Lua string
-  local ns = string.sub(s, startPos, endPos)
-  -- remove escapes Lua can't deal with
-  -- we use a function wrapper here for 5.0 compatibility
-  ns = string.gsub(ns, "\\.", function(k) return keepEscape[k] end)
-  -- parse \uXXXX TO UTF-8!!!
-  ns = string.gsub(ns, "\\u....", function(a)
-    a = string.sub(a, 3) -- strip \u
-    local n = base.tonumber(a, 16)
-    base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " for string at position " .. startPos .. " : " .. endPos)
-    -- math.floor(x/2^y) == lazy right shift
-    -- a % 2^b == bitwise_and(a, (2^b)-1)
-    -- 64 = 2^6
-    -- 4096 = 2^12 (or 2^6 * 2^6)
-    if n < 0x80 then
-      return string.char(n % 0x80)
-    elseif n < 0x800 then
-      -- [110x xxxx] [10xx xxxx]
-      return string.char(0xC0 + (math.floor(n/64) % 0x20)) .. string.char(0x80 + (n % 0x40))
+  -- PS: I don't think single quotes are valid JSON
+  base.assert(startChar == [["]] or startChar == [[']],'decode_scanString called for a non-string')
+  --base.assert(startPos, "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
+  local t = {}
+  local i,j = startPos,startPos
+  while string.find(s, startChar, j+1) ~= j+1 do
+    local oldj = j
+    i,j = string.find(ns, "\\.", j+1)
+    table.insert(t, string.sub(ns, oldj+1, i-1)
+    if string.sub(ns, i, j) == "\\u" then
+      local a = string.sub(ns,j+1,j+4)
+      j = j + 4
+      local n = base.tonumber(a, 16)
+      base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " for string at position " .. startPos .. " : " .. endPos)
+      -- math.floor(x/2^y) == lazy right shift
+      -- a % 2^b == bitwise_and(a, (2^b)-1)
+      -- 64 = 2^6
+      -- 4096 = 2^12 (or 2^6 * 2^6)
+      local x
+      if n < 0x80 then
+        x = string.char(n % 0x80)
+      elseif n < 0x800 then
+        -- [110x xxxx] [10xx xxxx]
+        x = string.char(0xC0 + (math.floor(n/64) % 0x20), 0x80 + (n % 0x40))
+      else
+        -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
+        x = string.char(0xE0 + (math.floor(n/4096) % 0x10), 0x80 + (math.floor(n/64) % 0x40), 0x80 + (n % 0x40))
+      end
+      table.insert(t, x)
     else
-      -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
-      return string.char(0xE0 + (math.floor(n/4096) % 0x10)) .. string.char(0x80 + (math.floor(n/64) % 0x40)) .. string.char(0x80 + (n % 0x40))
+      table.insert(t, escapeSequences[string.sub(ns, i, j)])
     end
-  end)
+  end
+  base.assert(string.find(s, startChar, j+1), "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
+  return table.concat(t,""), j+2
   -- END SoniEx2
-  
-  local stringValue = 'return ' .. ns -- SoniEx2: use ns instead of string.sub(s, startPos, endPos)
-  
-  local stringEval = base.loadstring(stringValue)
-  base.assert(stringEval, 'Failed to load string [ ' .. stringValue .. '] in JSON4Lua.decode_scanString at position ' .. startPos .. ' : ' .. endPos .. "\nThis is a bug!")
-  
-  return stringEval(), endPos + 1 -- SoniEx2: we have to add 1 to endPos
 end
 
 --- Scans a JSON string skipping all whitespace from the current start position.
