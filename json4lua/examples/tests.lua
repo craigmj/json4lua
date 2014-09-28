@@ -101,7 +101,7 @@ function testJSON4Lua()
   r = json.encode(s)
   -- NB: This test can fail because of order: need to test further once
   -- decoding is supported.
-  assert(r==[[{"age":35,"Name":"Craig","email":"craig@lateral.co.za"}]])
+  -- assert(r==[[{"age":35,"Name":"Craig","email":"craig@lateral.co.za"}]])
   
   -- Test decode_scanWhitespace
   if nil then
@@ -118,6 +118,11 @@ function testJSON4Lua()
   s = [["This\nis a \"test"]]
   r = json._decode_scanString(s,1)
   assert(r=="This\nis a \"test")
+
+  s = [["Test\u00A7\\"]]
+  r,e = json._decode_scanString(s,1)
+  assert(r=="Test\xC2\xA7\\" and e==9)
+  print(s,r)
   
   -- Test decode_scanNumber
   s = [[354]]
@@ -157,9 +162,17 @@ function testJSON4Lua()
   
   end
   
+  s = [["Test\u00A7\\\""]]
+  r,e = json.decode(s)
+  assert(r=="Test\xC2\xA7\\\"", r)
+  print(s,r)
+
   -- Test decode_scanObject
   s = [[ {"one":1, "two":2, "three":"three", "four":true} ]]
   r,e = json.decode(s)
+  for x,y in pairs(r) do
+    print(x,y)
+  end
   assert(compareData(r,{one=1,two=2,three='three',four=true}))
   s = [[ { "one" : { "first":1,"second":2,"third":3}, "two":2, "three":false } ]]
   r,e = json.decode(s)

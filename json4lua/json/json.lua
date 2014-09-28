@@ -272,6 +272,22 @@ function decode_scanObject(s,startPos)
   until false	-- infinite loop while key-value pairs are found
 end
 
+-- START SoniEx2
+-- Initialize some things used by decode_scanString
+-- You know, for efficiency
+local escapeSequences = {
+  ["\\t"] = "\t",
+  ["\\f"] = "\f",
+  ["\\r"] = "\r",
+  ["\\n"] = "\n",
+  ["\\b"] = "\b"
+}
+base.setmetatable(escapeSequences, {__index = function(t,k)
+  -- skip "\" aka strip escape
+  return string.sub(k,2)
+end})
+-- END SoniEx2
+
 --- Scans a JSON string from the opening inverted comma or single quote to the
 -- end of the string.
 -- Returns the string extracted as a Lua string,
@@ -283,31 +299,50 @@ end
 function decode_scanString(s,startPos)
   base.assert(startPos, 'decode_scanString(..) called without start position')
   local startChar = string.sub(s,startPos,startPos)
-  base.assert(startChar==[[']] or startChar==[["]],'decode_scanString called for a non-string')
-  local escaped = false
-  local endPos = startPos + 1
-  local bEnded = false
-  local stringLen = string.len(s)
-  repeat
-    local curChar = string.sub(s,endPos,endPos)
-    -- Character escaping is only used to escape the string delimiters
-    if not escaped then	
-      if curChar==[[\]] then
-        escaped = true
-      else
-        bEnded = curChar==startChar
-      end
-    else
-      -- If we're escaped, we accept the current character come what may
-      escaped = false
+  -- START SoniEx2
+  -- PS: I don't think single quotes are valid JSON
+  base.assert(startChar == [["]] or startChar == [[']],'decode_scanString called for a non-string')
+  --base.assert(startPos, "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
+  local t = {}
+  local i,j = startPos,startPos
+  while string.find(s, startChar, j+1) ~= j+1 do
+    local oldj = j
+    i,j = string.find(s, "\\.", j+1)
+    local x,y = string.find(s, startChar, oldj+1)
+    if not i or x < i then
+      base.print(s, startPos, string.sub(s,startPos,oldj))
+      i,j = x,y-1
+      if not x then base.print(s, startPos, string.sub(s,startPos,oldj)) end
     end
-    endPos = endPos + 1
-    base.assert(endPos <= stringLen+1, "String decoding failed: unterminated string at position " .. endPos)
-  until bEnded
-  local stringValue = 'return ' .. string.sub(s, startPos, endPos-1)
-  local stringEval = base.loadstring(stringValue)
-  base.assert(stringEval, 'Failed to load string [ ' .. stringValue .. '] in JSON4Lua.decode_scanString at position ' .. startPos .. ' : ' .. endPos)
-  return stringEval(), endPos  
+    table.insert(t, string.sub(s, oldj+1, i-1))
+    if string.sub(s, i, j) == "\\u" then
+      local a = string.sub(s,j+1,j+4)
+      j = j + 4
+      local n = base.tonumber(a, 16)
+      base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " at position " .. i .. " : " .. j)
+      -- math.floor(x/2^y) == lazy right shift
+      -- a % 2^b == bitwise_and(a, (2^b)-1)
+      -- 64 = 2^6
+      -- 4096 = 2^12 (or 2^6 * 2^6)
+      local x
+      if n < 0x80 then
+        x = string.char(n % 0x80)
+      elseif n < 0x800 then
+        -- [110x xxxx] [10xx xxxx]
+        x = string.char(0xC0 + (math.floor(n/64) % 0x20), 0x80 + (n % 0x40))
+      else
+        -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
+        x = string.char(0xE0 + (math.floor(n/4096) % 0x10), 0x80 + (math.floor(n/64) % 0x40), 0x80 + (n % 0x40))
+      end
+      table.insert(t, x)
+    else
+      table.insert(t, escapeSequences[string.sub(s, i, j)])
+    end
+  end
+  table.insert(t,string.sub(j, j+1))
+  base.assert(string.find(s, startChar, j+1), "String decoding failed: missing closing " .. startChar .. " at position " .. j .. "(for string at position " .. startPos .. ")")
+  return table.concat(t,""), j+2
+  -- END SoniEx2
 end
 
 --- Scans a JSON string skipping all whitespace from the current start position.
@@ -342,7 +377,7 @@ local escapeList = {
 }
 
 function encodeString(s)
- return s:gsub(".", escapeList)
+ return s:gsub(".", function(c) return escapeList[c] end) -- SoniEx2: 5.0 compat
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
