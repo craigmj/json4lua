@@ -7,6 +7,9 @@ require('json')
 require('os')
 require('table')
 
+-- this is so we don't get shouted at for syntax errors
+local mod = math.mod or math.fmod or (loadstring or load)("local a,b = ... return a % b")
+
 local t1 = os.clock()
 local jstr
 local v
@@ -26,7 +29,7 @@ end
 for i = 1,100 do
   local t = {}
   for j=1,500 do
-    local m= math.mod(j,3)
+    local m= mod(j,3)
     if (m==0) then
       t['a'..j] = true
     elseif m==1 then 
@@ -43,4 +46,4 @@ print (jstr)
 --print(type(t1))
 local t2 = os.clock()
 
-print ("Elapsed time=" .. os.difftime(t2,t1) .. "s")
+print ("Elapsed time=" .. t2 - t1 .. "s")
