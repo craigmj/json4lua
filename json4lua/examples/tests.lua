@@ -121,7 +121,7 @@ function testJSON4Lua()
 
   s = [["Test\u00A7\\"]]
   r,e = json._decode_scanString(s,1)
-  assert(r=="Test\xC2\xA7\\" and e==9)
+  assert(r=="Test\194\167\\\"" and e==9)
   print(s,r)
   
   -- Test decode_scanNumber
@@ -164,7 +164,7 @@ function testJSON4Lua()
   
   s = [["Test\u00A7\\\""]]
   r,e = json.decode(s)
-  assert(r=="Test\xC2\xA7\\\"", r)
+  assert(r=="Test\194\167\\\"", string.format("%q expected, got %q", "Test\194\167\\\"", r))
   print(s,r)
 
   -- Test decode_scanObject
