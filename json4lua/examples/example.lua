@@ -4,6 +4,9 @@ Demonstrates the simple functionality of the json module.
 ]]--
 json = require('json')
 
+-- lua 5.1+ compat
+local foreach = table.foreach or loadstring("local t,f = ... for k,v in pairs(t) do if f(k,v) ~= nil then break end end")
+
 
 -- Object to JSON encode
 test = {
@@ -18,6 +21,6 @@ print('JSON encoded test is: ' .. jsonTest)
 result = json.decode(jsonTest)
 
 print ("The decoded table result:")
-table.foreach(result,print)
+foreach(result, print)
 print ("The decoded table result.three")
-table.foreach(result.three, print)
+foreach(result.three, print)

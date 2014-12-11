@@ -41,7 +41,16 @@ local base = _G
 -----------------------------------------------------------------------------
 -- Module declaration
 -----------------------------------------------------------------------------
-module("json")
+local _ENV = _ENV
+local hasENV = false
+-- Check for Lua 5.2
+if not _ENV then
+  module("json")
+else
+  -- Use the new module system
+  hasENV = true
+end
+_ENV = {}
 
 -- Public functions
 
@@ -142,6 +151,25 @@ function encodeString(s)
   return tostring(s):gsub('["\\\r\n\t]',qrep)
 end
 
+-- START SoniEx2
+-- Initialize some things used by decodeString
+-- You know, for efficiency
+-- START SoniEx2
+-- Initialize some things used by decode_scanString
+-- You know, for efficiency
+local escapeSequences = {
+  t = "\t",
+  f = "\f",
+  r = "\r",
+  n = "\n",
+  b = "\b"
+}
+local paddingSequences = {
+  u = "\\u"
+}
+local mod = math.mod or math.fmod or (base.loadstring or base.load)("local a,b = ... return a % b")
+-- END SoniEx2
+
 --- Decodes a given JSON string back to a Lua string
 -- The characters, escapable in JSON (see above function) are automatically
 -- escaped by Lua. Nevertheless, the "/" (slash) character CAN be escaped in
@@ -149,7 +177,31 @@ end
 -- @param s The string to return as proper Lua string
 -- @return A JSON encoded string
 function decodeString(s)
-  return (base.load("return " .. tostring(s):gsub("\\/", "/"))) ()
+  local str = tostring(s)
+  str = string.gsub(str, "\\(.)", function(x) return paddingSequences[x] or ("\\v" .. x .. "///") end)
+  if string.find(str, "\\u", -5) then
+    -- string end looks like `"...\uXXX"` or `"...\uXX"` or `"...\uX"` or even `"...\u"`
+    base.error("String decoding failed: bad Unicode escape")
+  end
+  return string.gsub(str, "\\([vu])((.)...)",
+    function(a,b,c)
+      if a == "v" then
+        return escapeSequences[c] or c
+      else
+        local n = base.tonumber(b, 16)
+        base.assert(n, "String decoding failed: bad Unicode escape")
+        if n < 128 then
+          -- [0xxx xxxx] aka ASCII
+          return string.char(n)
+        elseif n < 2048 then
+          -- [110x xxxx] [10xx xxxx]
+          return string.char(192+math.floor(n/64),128+mod(n,64))
+        else
+          -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
+          return string.char(224+math.floor(n/4096),128+mod(math.floor(n/64),64),128+mod(n, 64))
+        end
+      end
+    end)
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
@@ -394,15 +446,15 @@ do
 				if t == c_esc then 
 					--table.insert(returnString, js_string:sub(start, pos-2))
 					--table.insert(returnString, escapechar[ js_string:byte(pos) ])
-					local c = js_string:sub(pos, pos)
-					if (not charstounescape:find(c)) then
-						error("invalid escape sequence '\\"..c.."' ("..location()..")")
-					end
+					--local c = js_string:sub(pos, pos)
+					--if (not charstounescape:find(c)) then
+						--error("invalid escape sequence '\\"..c.."' ("..location()..")")
+					--end
 					pos = pos + 1
 					--start = pos
 				end -- jump over escaped chars, no matter what
 			until t == true
-			return decodeString(js_string:sub(start-1, pos-1))
+			return decodeString(js_string:sub(start, pos-2))
 
 			-- We consider the situation where no escaped chars were encountered separately,
 			-- and use the fastest possible return in this case.
@@ -538,4 +590,8 @@ do
 		
 		return r
 	end
+end
+
+if hasENV then
+  return _ENV
 end
