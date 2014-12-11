@@ -38,7 +38,16 @@ local base = _G
 -----------------------------------------------------------------------------
 -- Module declaration
 -----------------------------------------------------------------------------
-module("json")
+local _ENV = _ENV
+local hasENV = false
+-- Check for Lua 5.2
+if not _ENV then
+  module("json")
+else
+  -- Use the new module system
+  hasENV = true
+end
+_ENV = {}
 
 -- Public functions
 
@@ -65,19 +74,19 @@ function encode (v)
   if v==nil then
     return "null"
   end
-  
+
   local vtype = base.type(v)  
 
   -- Handle strings
   if vtype=='string' then    
     return '"' .. encodeString(v) .. '"'	    -- Need to handle encoding in string
   end
-  
+
   -- Handle booleans
   if vtype=='number' or vtype=='boolean' then
     return base.tostring(v)
   end
-  
+
   -- Handle tables
   if vtype=='table' then
     local rval = {}
@@ -100,12 +109,12 @@ function encode (v)
       return '{' .. table.concat(rval,',') .. '}'
     end
   end
-  
+
   -- Handle null values
   if vtype=='function' and v==null then
     return 'null'
   end
-  
+
   base.assert(false,'encode attempt to encode unsupported type ' .. vtype .. ':' .. base.tostring(v))
 end
 
@@ -226,8 +235,8 @@ function decode_scanNumber(s,startPos)
   local stringLen = string.len(s)
   local acceptableChars = "+-0123456789.e"
   while (string.find(acceptableChars, string.sub(s,endPos,endPos), 1, true)
-	and endPos<=stringLen
-	) do
+    and endPos<=stringLen
+    ) do
     endPos = endPos + 1
   end
   local stringValue = 'return ' .. string.sub(s,startPos, endPos-1)
@@ -276,17 +285,20 @@ end
 -- Initialize some things used by decode_scanString
 -- You know, for efficiency
 local escapeSequences = {
-  ["\\t"] = "\t",
-  ["\\f"] = "\f",
-  ["\\r"] = "\r",
-  ["\\n"] = "\n",
-  ["\\b"] = "\b"
+  t = "\t",
+  f = "\f",
+  r = "\r",
+  n = "\n",
+  b = "\b"
 }
-base.setmetatable(escapeSequences, {__index = function(t,k)
-  -- skip "\" aka strip escape
-  return string.sub(k,2)
-end})
+local paddingSequences = {
+  u = "\\u"
+}
 -- END SoniEx2
+
+-- 5.0, 5.1, 5.2, 5.3+
+-- for _positive numbers_, math.fmod(a,b) == a % b
+local mod = math.mod or math.fmod or ((base.loadstring or base.load)("return function(a,b) return a % b end")())
 
 --- Scans a JSON string from the opening inverted comma or single quote to the
 -- end of the string.
@@ -299,50 +311,58 @@ end})
 function decode_scanString(s,startPos)
   base.assert(startPos, 'decode_scanString(..) called without start position')
   local startChar = string.sub(s,startPos,startPos)
-  -- START SoniEx2
-  -- PS: I don't think single quotes are valid JSON
-  base.assert(startChar == [["]] or startChar == [[']],'decode_scanString called for a non-string')
-  --base.assert(startPos, "String decoding failed: missing closing " .. startChar .. " for string at position " .. oldStart)
-  local t = {}
-  local i,j = startPos,startPos
-  while string.find(s, startChar, j+1) ~= j+1 do
-    local oldj = j
-    i,j = string.find(s, "\\.", j+1)
-    local x,y = string.find(s, startChar, oldj+1)
-    if not i or x < i then
-      base.print(s, startPos, string.sub(s,startPos,oldj))
-      i,j = x,y-1
-      if not x then base.print(s, startPos, string.sub(s,startPos,oldj)) end
-    end
-    table.insert(t, string.sub(s, oldj+1, i-1))
-    if string.sub(s, i, j) == "\\u" then
-      local a = string.sub(s,j+1,j+4)
-      j = j + 4
-      local n = base.tonumber(a, 16)
-      base.assert(n, "String decoding failed: bad Unicode escape " .. a .. " at position " .. i .. " : " .. j)
-      -- math.floor(x/2^y) == lazy right shift
-      -- a % 2^b == bitwise_and(a, (2^b)-1)
-      -- 64 = 2^6
-      -- 4096 = 2^12 (or 2^6 * 2^6)
-      local x
-      if n < 0x80 then
-        x = string.char(n % 0x80)
-      elseif n < 0x800 then
-        -- [110x xxxx] [10xx xxxx]
-        x = string.char(0xC0 + (math.floor(n/64) % 0x20), 0x80 + (n % 0x40))
+  base.assert(startChar==[[']] or startChar==[["]],'decode_scanString called for a non-string')
+  local escaped = false
+  local endPos = startPos + 1
+  local bEnded = false
+  local stringLen = string.len(s)
+  local stringLenAdd1 = stringLen + 1
+  repeat
+    if not escaped then
+      local curChar = string.sub(s,endPos,endPos)
+      if curChar==[[\]] then
+        escaped = true
       else
-        -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
-        x = string.char(0xE0 + (math.floor(n/4096) % 0x10), 0x80 + (math.floor(n/64) % 0x40), 0x80 + (n % 0x40))
+        bEnded = curChar==startChar
       end
-      table.insert(t, x)
     else
-      table.insert(t, escapeSequences[string.sub(s, i, j)])
+      escaped = false
     end
+    endPos = endPos + 1
+    base.assert(endPos <= stringLenAdd1, "unfinished string")
+  until bEnded
+  --local stringValue = 'return ' .. string.sub(s, startPos, endPos-1)
+  --local stringEval = base.loadstring(stringValue)
+  --base.assert(stringEval, 'Failed to load string [ ' .. stringValue .. '] in JSON4Lua.decode_scanString at position ' .. startPos .. ' : ' .. endPos)
+  --return stringEval(), endPos
+  --return table.concat(t), endPos
+  local str = string.sub(s, startPos+1, endPos-2)
+  -- pad - we use a table here because we want to keep \u as \u
+  str = string.gsub(str, "\\(.)", function(x) return paddingSequences[x] or ("\\v" .. x .. "///") end)
+  if string.find(str, "\\u", -5) then
+    -- string end looks like `"...\uXXX"` or `"...\uXX"` or `"...\uX"` or even `"...\u"`
+    base.error("String decoding failed: bad Unicode escape")
   end
-  table.insert(t,string.sub(j, j+1))
-  base.assert(string.find(s, startChar, j+1), "String decoding failed: missing closing " .. startChar .. " at position " .. j .. "(for string at position " .. startPos .. ")")
-  return table.concat(t,""), j+2
-  -- END SoniEx2
+  str = string.gsub(str, "\\([vu])((.)...)",
+    function(a,b,c)
+      if a == "v" then
+        return escapeSequences[c] or c
+      else
+        local n = base.tonumber(b, 16)
+        base.assert(n, "String decoding failed: bad Unicode escape")
+        if n < 128 then
+          -- [0xxx xxxx] aka ASCII
+          return string.char(n)
+        elseif n < 2048 then
+          -- [110x xxxx] [10xx xxxx]
+          return string.char(192+math.floor(n/64),128+mod(n,64))
+        else
+          -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
+          return string.char(224+math.floor(n/4096),128+mod(math.floor(n/64),64),128+mod(n, 64))
+        end
+      end
+    end)
+  return str, endPos
 end
 
 --- Scans a JSON string skipping all whitespace from the current start position.
@@ -366,18 +386,18 @@ end
 -- @return The string appropriately escaped.
 
 local escapeList = {
-    ['"']  = '\\"',
-    ['\\'] = '\\\\',
-    ['/']  = '\\/', 
-    ['\b'] = '\\b',
-    ['\f'] = '\\f',
-    ['\n'] = '\\n',
-    ['\r'] = '\\r',
-    ['\t'] = '\\t'
+  ['"']  = '\\"',
+  ['\\'] = '\\\\',
+  ['/']  = '\\/', 
+  ['\b'] = '\\b',
+  ['\f'] = '\\f',
+  ['\n'] = '\\n',
+  ['\r'] = '\\r',
+  ['\t'] = '\\t'
 }
 
 function encodeString(s)
- return s:gsub(".", function(c) return escapeList[c] end) -- SoniEx2: 5.0 compat
+  return s:gsub(".", function(c) return escapeList[c] end) -- SoniEx2: 5.0 compat
 end
 
 -- Determines whether the given Lua type is an array or a table / dictionary.
@@ -417,3 +437,6 @@ function isEncodable(o)
   return (t=='string' or t=='boolean' or t=='number' or t=='nil' or t=='table') or (t=='function' and o==null) 
 end
 
+if hasENV then
+  return _ENV
+end

@@ -121,7 +121,7 @@ function testJSON4Lua()
 
   s = [["Test\u00A7\\"]]
   r,e = json._decode_scanString(s,1)
-  assert(r=="Test\xC2\xA7\\" and e==9)
+  assert(r=="Test\194\167\\\"" and e==9)
   print(s,r)
   
   -- Test decode_scanNumber
@@ -162,10 +162,52 @@ function testJSON4Lua()
   
   end
   
+  -- Test string decoding
   s = [["Test\u00A7\\\""]]
   r,e = json.decode(s)
-  assert(r=="Test\xC2\xA7\\\"", r)
+  assert(r=="Test\194\167\\\"")
   print(s,r)
+  
+  s = [["\\u"]]
+  r,e = json.decode(s)
+  assert(r=="\\u")
+  print(s,r)
+  
+  s = [["\\"]]
+  r,e = json.decode(s)
+  assert(r=="\\")
+  print(s,r)
+  
+  s = [["\v\///"]]
+  r,e = json.decode(s)
+  assert(r=="v///")
+  print(s,r)
+  
+  -- Test invalid unicode escapes
+  s = [["\u000"]]
+  r,e = pcall(json.decode,s)
+  assert(not r and e)
+  print(s,r,e)
+  
+  s = [["\u00"]]
+  r,e = pcall(json.decode,s)
+  assert(not r and e)
+  print(s,r,e)
+  
+  s = [["\u0"]]
+  r,e = pcall(json.decode,s)
+  assert(not r and e)
+  print(s,r,e)
+  
+  s = [["\u"]]
+  r,e = pcall(json.decode,s)
+  assert(not r and e)
+  print(s,r,e)
+  
+  s = [["\uXXXX"]]
+  r,e = pcall(json.decode,s)
+  assert(not r and e)
+  print(s,r,e)
 
   -- Test decode_scanObject
   s = [[ {"one":1, "two":2, "three":"three", "four":true} ]]
