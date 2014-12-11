@@ -7,6 +7,7 @@ require('json')
 require('os')
 require('table')
 
+-- this is so we don't get shouted at for syntax errors
 local mod = math.mod or math.fmod or (loadstring or load)("local a,b = ... return a % b")
 
 local t1 = os.clock()
