@@ -1,8 +1,8 @@
 package="JSON4Lua"
-version="0.9.50-3"
+version="0.9.50-4"
 source = {
    url = "git://github.com/amrhassan/json4lua.git",
-   tag = "0.9.50-3"
+   tag = "0.9.50-4"
 }
 description = {
    summary = "JSON4Lua and JSONRPC4Lua implement JSON (JavaScript Object Notation) encoding and decoding and a JSON-RPC-over-http client for Lua.",
@@ -26,6 +26,6 @@ build = {
    type = "builtin",
    modules = {
      ["json"] = "json.lua",
-     ["json.rpc"] = "rpc.lua"
+     ["json.rpc"] = "json/rpc.lua"
    }
 }
