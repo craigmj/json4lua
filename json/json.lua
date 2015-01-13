@@ -38,7 +38,7 @@ local base = _G
 -----------------------------------------------------------------------------
 -- Module declaration
 -----------------------------------------------------------------------------
-module("json")
+module("json", package.seeall)
 
 -- Public functions
 
@@ -377,6 +377,7 @@ local escapeList = {
 }
 
 function encodeString(s)
+ local s = tostring(s)
  return s:gsub(".", function(c) return escapeList[c] end) -- SoniEx2: 5.0 compat
 end
 
