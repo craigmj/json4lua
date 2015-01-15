@@ -22,7 +22,8 @@
 --  compat-5.1 if using Lua 5.0.
 -----------------------------------------------------------------------------
 
-module('json.rpc', package.seeall)
+local json = require('json')
+json.rpc = {}     -- Module public namespace
 
 -----------------------------------------------------------------------------
 -- Imports and dependencies
@@ -42,7 +43,7 @@ local http = require("socket.http")
 --   print(jsolait.echo('This is a test of the echo method!'))
 --   print(jsolait.args2String('first','second','third'))
 --   table.foreachi( jsolait.args2Array(5,4,3,2,1), print)
-function proxy(url)
+function json.rpc.proxy(url)
   local serverProxy = {}
   local proxyMeta = {
     __index = function(self, key)
@@ -68,7 +69,7 @@ end
 -- are nil, this means that the result of the RPC call was nil.
 -- EXAMPLE Usage:
 --   print(json.rpc.call('http://jsolait.net/testj.py','echo','This string will be returned'))
-function call(url, method, ...)
+function json.rpc.call(url, method, ...)
   local JSONRequestArray = {
     id=tostring(math.random()),
     ["method"]=method,

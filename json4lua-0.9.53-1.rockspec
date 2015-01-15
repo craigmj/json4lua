@@ -1,8 +1,8 @@
 package="JSON4Lua"
-version="0.9.51-1"
+version="0.9.53-1"
 source = {
   url = "git://github.com/amrhassan/json4lua.git",
-  tag = "0.9.51-1"
+  tag = "0.9.53-1"
 }
 description = {
    summary = "JSON4Lua and JSONRPC4Lua implement JSON (JavaScript Object Notation) encoding and decoding and a JSON-RPC-over-http client for Lua.",
