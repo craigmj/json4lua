@@ -2,8 +2,8 @@
 -- JSON4Lua: JSON encoding / decoding support for the Lua language.
 -- json Module.
 -- Author: Craig Mason-Jones
--- Homepage: http://json.luaforge.net/
--- Version: 0.9.40
+-- Homepage: http://github.com/craigmj/json4lua/
+-- Version: 1.0.0
 -- This module is released under the MIT License (MIT).
 -- Please see LICENCE.txt for details.
 --
