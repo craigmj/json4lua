@@ -22,7 +22,8 @@
 --  compat-5.1 if using Lua 5.0.
 -----------------------------------------------------------------------------
 
-module('json.rpc')
+local json = require('json')
+json.rpc = {}     -- Module public namespace
 
 -----------------------------------------------------------------------------
 -- Imports and dependencies
@@ -42,12 +43,12 @@ local http = require("socket.http")
 --   print(jsolait.echo('This is a test of the echo method!'))
 --   print(jsolait.args2String('first','second','third'))
 --   table.foreachi( jsolait.args2Array(5,4,3,2,1), print)
-function proxy(url)
+function json.rpc.proxy(url)
   local serverProxy = {}
   local proxyMeta = {
-    __index = function(t, key) 
+    __index = function(self, key)
       return function(...)
-        return json.rpc.call(url, key, unpack(arg))
+        return json.rpc.call(url, key, ...)
       end
     end
   }
@@ -68,12 +69,11 @@ end
 -- are nil, this means that the result of the RPC call was nil.
 -- EXAMPLE Usage:
 --   print(json.rpc.call('http://jsolait.net/testj.py','echo','This string will be returned'))
-function call(url, method, ...)
-  assert(method,'method param is nil to call')
+function json.rpc.call(url, method, ...)
   local JSONRequestArray = {
-    id="httpRequest",
+    id=tostring(math.random()),
     ["method"]=method,
-    params = arg
+    params = ...
   }
   local httpResponse, result , code
   local jsonRequest = json.encode(JSONRequestArray)
@@ -87,7 +87,7 @@ function call(url, method, ...)
     { ['url'] = url,
       sink = ltn12.sink.table(resultChunks),
       method = 'POST',
-      headers = { ['content-type']='text/plain', ['content-length']=string.len(jsonRequest) },
+      headers = { ['content-type']='application/json-rpc', ['content-length']=string.len(jsonRequest) },
       source = ltn12.source.string(jsonRequest)
     }
   )
