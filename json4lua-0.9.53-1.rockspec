@@ -1,8 +1,8 @@
 package="JSON4Lua"
-version="0.9.53-1"
+version="1.0.0"
 source = {
-  url = "git://github.com/amrhassan/json4lua.git",
-  tag = "0.9.53-1"
+  url = "git://github.com/craigmj/json4lua.git",
+  tag = "1.0.0"
 }
 description = {
    summary = "JSON4Lua and JSONRPC4Lua implement JSON (JavaScript Object Notation) encoding and decoding and a JSON-RPC-over-http client for Lua.",
@@ -15,7 +15,7 @@ description = {
       JSONRPC4Lua, which provides a simple JSON-RPC-over-http client and server
       (in a CGILua environment) for Lua.
    ]],
-   homepage = "http://json.luaforge.net/",
+   homepage = "http://github.com/craigmj/json4lua/",
    license = "GPL"
 }
 dependencies = {
