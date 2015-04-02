@@ -9,8 +9,12 @@
 --
 -- USAGE:
 -- This module exposes two functions:
---   json.encode(o)
+--   json.encode(o, options)
 --     Returns the table / string / boolean / number / nil / json.null value as a JSON-encoded string.
+--     options is an optional table giving additional options:
+--        sort_keys - sort object keys alphabetically
+--        pretty - put spaces after ':' and ',',
+--        indent - optional indent amount for pretty-printing
 --   json.decode(json_string)
 --     Returns a Lua object populated with the data encoded in the JSON string json_string.
 --
@@ -52,6 +56,9 @@ local decode_scanWhitespace
 local encodeString
 local isArray
 local isEncodable
+local __genOrderedIndex
+local orderedNext
+local orderedPairs
 
 -----------------------------------------------------------------------------
 -- PUBLIC FUNCTIONS
@@ -59,7 +66,10 @@ local isEncodable
 --- Encodes an arbitrary Lua object / variable.
 -- @param v The Lua object / variable to be JSON encoded.
 -- @return String containing the JSON encoding in internal Lua string format (i.e. not unicode)
-function json.encode (v)
+function json.encode (v, options, depth)
+  options = options or {}
+  depth = depth or 0
+
   -- Handle nil values
   if v==nil then
     return "null"
@@ -80,23 +90,34 @@ function json.encode (v)
   -- Handle tables
   if vtype=='table' then
     local rval = {}
+    local indent = options.indent and ('\n' .. string.rep(' ', options.indent * (depth + 1))) or ''
     -- Consider arrays separately
     local bArray, maxCount = isArray(v)
     if bArray then
       for i = 1,maxCount do
-        table.insert(rval, json.encode(v[i]))
+        table.insert(rval, json.encode(v[i], options, depth + 1))
       end
     else	-- An object, not an array
-      for i,j in pairs(v) do
+      local iter = options.sort_keys and orderedPairs or pairs
+      local colon = options.pretty and '": ' or '":'
+      for i,j in iter(v) do
         if isEncodable(i) and isEncodable(j) then
-          table.insert(rval, '"' .. json_private.encodeString(i) .. '":' .. json.encode(j))
+          table.insert(rval, '"' .. json_private.encodeString(i) .. colon .. json.encode(j, options, depth + 1))
         end
       end
     end
-    if bArray then
-      return '[' .. table.concat(rval,',') ..']'
+
+    local brackets = bArray and {'[',']'} or {'{','}'}
+    if options.indent then
+      local indent = string.rep(' ', options.indent)
+      return table.concat({
+        brackets[1],
+        indent:rep(depth+1) .. table.concat(rval, ',\n' .. indent:rep(depth+1)),
+        indent:rep(depth) .. brackets[2]
+      }, '\n')
     else
-      return '{' .. table.concat(rval,',') .. '}'
+      local comma = options.pretty and ', ' or ','
+      return brackets[1] .. table.concat(rval, comma) .. brackets[2]
     end
   end
   
@@ -412,6 +433,56 @@ end
 function isEncodable(o)
   local t = type(o)
   return (t=='string' or t=='boolean' or t=='number' or t=='nil' or t=='table') or (t=='function' and o==null) 
+end
+
+--[[
+Ordered table iterator, allow to iterate on the natural order of the keys of a
+table.
+
+Source: http://lua-users.org/wiki/SortedIteration
+]]
+function __genOrderedIndex( t )
+  local orderedIndex = {}
+  for key in pairs(t) do
+    table.insert( orderedIndex, key )
+  end
+  table.sort( orderedIndex )
+  return orderedIndex
+end
+
+function orderedNext(t, state)
+  -- Equivalent of the next function, but returns the keys in the alphabetic
+  -- order. We use a temporary ordered key table that is stored in the
+  -- table being iterated.
+
+  --print("orderedNext: state = "..tostring(state) )
+  if state == nil then
+    -- the first time, generate the index
+    t.__orderedIndex = __genOrderedIndex( t )
+    key = t.__orderedIndex[1]
+    return key, t[key]
+  end
+  -- fetch the next value
+  key = nil
+  for i = 1,table.getn(t.__orderedIndex) do
+    if t.__orderedIndex[i] == state then
+      key = t.__orderedIndex[i+1]
+    end
+  end
+
+  if key then
+    return key, t[key]
+  end
+
+  -- no more value to return, cleanup
+  t.__orderedIndex = nil
+  return
+end
+
+function orderedPairs(t)
+  -- Equivalent of the pairs() function on tables. Allows to iterate
+  -- in order
+  return orderedNext, t, nil
 end
 
 return json

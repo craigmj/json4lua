@@ -3,7 +3,7 @@
 ]]--
 
 
-require('json')
+json = require('json')
 require('os')
 require('table')
 
@@ -43,4 +43,4 @@ print (jstr)
 --print(type(t1))
 local t2 = os.clock()
 
-print ("Elapsed time=" .. os.difftime(t2,t1) .. "s")
+print ("Elapsed time=" .. (t2 - t1) .. "s")
