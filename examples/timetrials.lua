@@ -1,5 +1,5 @@
 --[[
-  Some Time Trails for the JSON4Lua package
+  Some Time Trials for the JSON4Lua package
 ]]--
 
 

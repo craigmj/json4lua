@@ -57,7 +57,7 @@ function serve(luaClass, packReturn)
 	jsonResponse.error = 'Method ' .. jsonRequest.method .. ' does not exist at this server.'
   else
     local callResult = { pcall( method, unpack( jsonRequest.params ) ) }
-    if callResult[1] then	-- Function call successfull
+    if callResult[1] then	-- Function call successful
       table.remove(callResult,1)
       if packReturn and table.getn(callResult)>1 then
         jsonResponse.result = callResult
