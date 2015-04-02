@@ -17,6 +17,26 @@ print(json.encode({ 1, 2, 'fred', {first='mars',second='venus',third='earth'} })
 ```json
 [1,2,"fred", {"first":"mars","second":"venus","third","earth"}] 
 ```
+Order of object keys is not guaranteed.
+
+```lua
+json = require('json')
+print(json.encode(
+    { 1, 2, 'fred', {first='mars',second='venus',third='earth'} },
+    { sort_keys=true, pretty=true, indent=4 }))
+```
+```json
+[
+    1,
+    2,
+    "fred",
+    {
+        "first": "mars",
+        "second": "venus",
+        "third": "earth"
+    }
+]
+```
 
 ## Decoding ##
 

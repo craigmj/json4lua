@@ -102,6 +102,13 @@ function testJSON4Lua()
   -- NB: This test can fail because of order: need to test further once
   -- decoding is supported.
   -- assert(r==[[{"age":35,"Name":"Craig","email":"craig@lateral.co.za"}]])
+  r = json.encode(s, {sort_keys=true})
+  assert(r==[[{"Name":"Craig","age":35,"email":"craig@lateral.co.za"}]], r)
+  
+  -- Test pretty-printing
+  s = { 2, 'joe', false, nil, 'hi' }
+  r = json.encode(s, { pretty=true, indent=2 })
+  assert(r=='[\n  2,\n  "joe",\n  false,\n  null,\n  "hi"\n]', r)
   
   -- Test decode_scanWhitespace
   if nil then
