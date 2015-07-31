@@ -21,6 +21,7 @@ description = {
 dependencies = {
    "lua >= 5.2",
    "luasocket",
+   "cgilua",
 }
 
 build = {
