@@ -27,6 +27,7 @@ build = {
    type = "builtin",
    modules = {
      ["json"] = "json/json.lua",
-     ["json.rpc"] = "json/rpc.lua"
+     ["json.rpc"] = "json/rpc.lua",
+     ["json.rpcserver"] = "json/rpcserver.lua"
    }
 }
