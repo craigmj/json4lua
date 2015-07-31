@@ -3,7 +3,7 @@ JSONRPC for Lua
 
 # Installation #
 ```
-luarocks --local install https://raw.githubusercontent.com/pdxmeshnet/jsonrpc4lua/master/json4lua-1.0.0-1.rockspec
+luarocks --local install https://raw.githubusercontent.com/pdxmeshnet/jsonrpc4lua/master/jsonrpc4lua-1.0.0-1.rockspec
 ```
 
 # Required CGILua Fix #

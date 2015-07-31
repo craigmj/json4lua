@@ -20,7 +20,7 @@ description = {
    license = "GPL"
 }
 dependencies = {
-   "lua >= 5.2",
+   "lua >= 5.1",
    "luasocket",
    "cgilua",
    "lua-cjson",
