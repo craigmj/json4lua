@@ -1,5 +1,5 @@
 package="JSONRPC4Lua"
-version="1.0.0-1"
+version="1.0.0"
 source = {
   url = "git://github.com/pdxmeshnet/jsonrpc4lua.git",
   tag = "1.0.0"
