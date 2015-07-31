@@ -78,9 +78,10 @@ function rpc.call(url, method, ...)
   local httpResponse, result , code
   local jsonRequest = json.encode(JSONRequestArray)
   -- We use the sophisticated http.request form (with ltn12 sources and sinks) so that
-  -- we can set the content-type to text/plain. While this shouldn't strictly-speaking be true,
-  -- it seems a good idea (Xavante won't work w/out a content-type header, although a patch
-  -- is needed to Xavante to make it work with text/plain)
+  -- we can set the content-type to application/json-rpc. While this shouldn't strictly-speaking be true,
+  -- it seems a good idea.
+  -- cgilua does not support application/json-rpc at the moment of this writing
+  -- fix: https://github.com/pdxmeshnet/cgilua/commit/1b35d812c7d637b91f2ac0a8d91f9698ba84d8d9
   local ltn12 = require('ltn12')
   local resultChunks = {}
   httpResponse, code = http.request(
