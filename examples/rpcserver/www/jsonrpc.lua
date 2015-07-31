@@ -2,7 +2,8 @@
 -- jsonrpc.lua
 -- Installed in a CGILua webserver environment (with necessary CGI Lua 5.0 patch)
 --
-require ('json.rpcserver')
+
+local rpcserver = require('json.rpcserver')
 
 -- The Lua class that is to serve JSON RPC requests
 local myServer = {
@@ -18,4 +19,4 @@ local myServer = {
   end
 }
 
-json.rpcserver.serve(myServer)
+rpcserver.serve(myServer)
