@@ -73,7 +73,7 @@ function json.rpc.call(url, method, ...)
   local JSONRequestArray = {
     id=tostring(math.random()),
     ["method"]=method,
-    params = ...
+    params = {...}
   }
   local httpResponse, result , code
   local jsonRequest = json.encode(JSONRequestArray)
