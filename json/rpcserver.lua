@@ -24,7 +24,13 @@
 --      for details.
 ----------------------------------------------------------------------------
 
-module ('json.rpcserver')
+
+local cgilua = require "cgilua"
+local json = require "json"
+
+--- @module json.rpcserver
+local rpcserver = {}
+
 
 ---
 -- Implements a JSON RPC Server wrapping for luaClass, exposing each of luaClass's
@@ -35,44 +41,47 @@ module ('json.rpcserver')
 -- false, when a function returns multiple values, only the first of these values will
 -- be returned.
 --
-function serve(luaClass, packReturn)
-  cgilua.contentheader('text','plain')
-  require('cgilua')
-  require ('json')
-  local postData = ""
+function rpcserver.serve(luaClass, packReturn)
   
-  if not cgilua.servervariable('CONTENT_LENGTH') then
-    cgilua.put("Please access JSON Request using HTTP POST Request")
-    return 0
-  else
-    postData = cgi[1]	-- SAPI.Request.getpostdata()  --[[{ "id":1, "method":"echo","params":["Hi there"]}]]  --
-  end
-  -- @TODO Catch an error condition on decoding the data
-  local jsonRequest = json.decode(postData)
+  cgilua.contentheader('aplication','json-rpc')
+  
+  local postData = "{}"
+  
   local jsonResponse = {}
-  jsonResponse.id = jsonRequest.id
-  local method = luaClass[ jsonRequest.method ]
-
-  if not method then
-	jsonResponse.error = 'Method ' .. jsonRequest.method .. ' does not exist at this server.'
+  
+  if cgilua.servervariable('REQUEST_METHOD') ~= "POST" then
+    jsonResponse.error = "Please use HTTP POST"
   else
-    local callResult = { pcall( method, unpack( jsonRequest.params ) ) }
-    if callResult[1] then	-- Function call successfull
-      table.remove(callResult,1)
-      if packReturn and table.getn(callResult)>1 then
-        jsonResponse.result = callResult
-      else
-        jsonResponse.result = unpack(callResult)	-- NB: Does not support multiple argument returns
-      end
+    postData = cgilua.POST[1]  --[[{ "id":1, "method":"echo","params":["Hi there"]}]]  --
+    
+    -- @TODO Catch an error condition on decoding the data
+    local jsonRequest = json.decode(postData)
+    jsonResponse.id = jsonRequest.id
+    local method = luaClass[ jsonRequest.method ]
+  
+    if not method then
+      jsonResponse.error = 'Method ' .. jsonRequest.method .. ' does not exist at this server.'
+    elseif type(jsonRequest.params) ~= "table" then
+      jsonResponse.error = 'Invalid method parameters list "' .. json.encode(jsonRequest.params) .. '".'
     else
-      jsonResponse.error = callResult[2]
-    end
-  end 
+      local callResult = { pcall( method, unpack( jsonRequest.params ) ) }
+      if callResult[1] then -- Function call successfull
+        table.remove(callResult,1)
+        if packReturn and table.getn(callResult)>1 then
+          jsonResponse.result = callResult
+        else
+          jsonResponse.result = unpack(callResult)  -- NB: Does not support multiple argument returns
+        end
+      else
+        jsonResponse.error = callResult[2]
+      end
+    end 
+  end
   
   -- Output the result
   -- TODO: How to be sure that the result and error tags are there even when they are nil in Lua?
   -- Can force them by hand... ?
-  cgilua.contentheader('text','plain')
   cgilua.put( json.encode( jsonResponse ) )
 end
 
+return rpcserver
