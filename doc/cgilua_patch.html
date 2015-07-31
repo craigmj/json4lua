@@ -160,19 +160,24 @@ body {
       <div class="titleBar">Patching CGILua to handle <code>text/plain</code></div>
       
       <!-- cgilua_patch.html -->
-JSON RPC (both the JSONRPC4Lua implementation and the <a href="http://www.jsolait.net/">jsolait Javascript</a> implementation) send the http request with a Content-Type of <code>text/plain</code>.<p/>
+JSON RPC (both the JSONRPC4Lua implementation and the <a href="http://www.jsolait.net/">jsolait Javascript</a> implementation) send the http request with a Content-Type of <code>application/json-rpc</code>.<p/>
 
-CGILua 5.0 does not accept <code>text/plain</code> content, and will generate an error of 'Unsupported Media Type: text/plain'.<p/>
+CGILua does not accept <code>application/json-rpc</code> content, and will generate 'Unsupported Media Type' error.<p/>
 
-This is easily patched in CGILua 5.0 by making the following change to <code>cgilua/post.lua</code>, line 286:<p/>
+This is easily patched in CGILua by making the following change to <code>cgilua/post.lua</code>, line 289:<p/>
 Change:<pre>
-	elseif strfind (contenttype, "text/xml") then
+   elseif strfind (contenttype, "application/xml", 1, true) or strfind (contenttype, "text/xml", 1, true) or strfind (contenttype, "text/plain", 1, true) then
+     tinsert (defs.args, read (inputsize))
+   else
+     error("Unsupported Media Type: "..contenttype)
 </pre>
 to
 <pre>
-	elseif strfind (contenttype, "text/xml") or strfind (contenttype, "text/plain") then
+   else
+     local input = read(inputsize)
+     tinsert (defs.args, input)
 </pre>
-This makes CGILua handle <code>text/plain</code> as it does <code>text/xml</code>, without parsing the incoming POST data.<p/>
+This makes CGILua handle all unsupported content types as <code>text/plain</code>, without parsing the incoming POST data.<p/>
 
 <b>Please note:</b> I have requested the maintainers of CGILua to make this change to CGILua, whereafter this patch will no longer be required.
 
