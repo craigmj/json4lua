@@ -28,7 +28,7 @@ local rpc = {}     -- Module public namespace
 -----------------------------------------------------------------------------
 -- Imports and dependencies
 -----------------------------------------------------------------------------
-local json = require('json')
+local cjson_safe = require("cjson.safe")
 local http = require("socket.http")
 
 -----------------------------------------------------------------------------
@@ -76,7 +76,10 @@ function rpc.call(url, method, ...)
     params = {...}
   }
   local httpResponse, result , code
-  local jsonRequest = json.encode(JSONRequestArray)
+  local jsonRequest, err = cjson_safe.encode(JSONRequestArray)
+  if jsonRequest == nil then
+    return nil, err
+  end 
   -- We use the sophisticated http.request form (with ltn12 sources and sinks) so that
   -- we can set the content-type to application/json-rpc. While this shouldn't strictly-speaking be true,
   -- it seems a good idea.
@@ -98,11 +101,15 @@ function rpc.call(url, method, ...)
     return nil, "HTTP ERROR: " .. code
   end
   -- And decode the httpResponse and check the JSON RPC result code
-  result = json.decode( httpResponse )
+  result, err = cjson_safe.decode( httpResponse )
   if result.result then
     return result.result, nil
   else
-    return nil, result.error
+    if err then
+      return nil, err
+    else
+      return nil, result.error
+    end
   end
 end
 

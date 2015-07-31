@@ -1,33 +1,34 @@
-package="JSON4Lua"
+package="JSONRPC4Lua"
 version="1.0.0"
 source = {
-  url = "git://github.com/craigmj/json4lua.git",
+  url = "git://github.com/pdxmeshnet/jsonrpc4lua.git",
   tag = "1.0.0"
 }
 description = {
-   summary = "JSON4Lua and JSONRPC4Lua implement JSON (JavaScript Object Notation) encoding and decoding and a JSON-RPC-over-http client for Lua.",
+   summary = "JSONRPC4Lua implement JSON-RPC-over-http client and server-side for Lua.",
    detailed = [[
-      JSON4Lua and JSONRPC4Lua implement JSON (JavaScript Object Notation)
-      encoding and decoding and a JSON-RPC-over-http client for Lua.
+      JSONRPC4Lua implement JSON-RPC-over-http client and server-side for Lua.
       JSON is JavaScript Object Notation, a simple encoding of
       Javascript-like objects that is ideal for lightweight transmission
-      of relatively weakly-typed data. A sub-package of JSON4Lua is
-      JSONRPC4Lua, which provides a simple JSON-RPC-over-http client and server
-      (in a CGILua environment) for Lua.
+      of relatively weakly-typed data.  RPC is an inter-process communication
+      mechanism that allows a computer program to cause a subroutine to
+      execute in a program running on a remote host.  JSONRPC4Lua provides a
+      simple JSON-RPC-over-http client and server-side (in a CGILua
+      environment) for Lua.
    ]],
-   homepage = "http://github.com/craigmj/json4lua/",
+   homepage = "http://github.com/pdxmeshnet/jsonrpc4lua/",
    license = "GPL"
 }
 dependencies = {
    "lua >= 5.2",
    "luasocket",
    "cgilua",
+   "lua-cjson",
 }
 
 build = {
    type = "builtin",
    modules = {
-     ["json"] = "json/json.lua",
      ["json.rpc"] = "json/rpc.lua",
      ["json.rpcserver"] = "json/rpcserver.lua"
    }

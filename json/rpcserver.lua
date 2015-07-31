@@ -26,7 +26,7 @@
 
 
 local cgilua = require "cgilua"
-local json = require "json"
+local cjson_safe = require "cjson.safe"
 
 --- @module json.rpcserver
 local rpcserver = {}
@@ -48,40 +48,49 @@ function rpcserver.serve(luaClass, packReturn)
   local postData = "{}"
   
   local jsonResponse = {}
+  jsonResponse.result = nil
+  jsonResponse.error = nil
   
   if cgilua.servervariable('REQUEST_METHOD') ~= "POST" then
     jsonResponse.error = "Please use HTTP POST"
   else
     postData = cgilua.POST[1]  --[[{ "id":1, "method":"echo","params":["Hi there"]}]]  --
     
-    -- @TODO Catch an error condition on decoding the data
-    local jsonRequest = json.decode(postData)
-    jsonResponse.id = jsonRequest.id
-    local method = luaClass[ jsonRequest.method ]
-  
-    if not method then
-      jsonResponse.error = 'Method ' .. jsonRequest.method .. ' does not exist at this server.'
-    elseif type(jsonRequest.params) ~= "table" then
-      jsonResponse.error = 'Invalid method parameters list "' .. json.encode(jsonRequest.params) .. '".'
+    local jsonRequest, err = cjson_safe.decode(postData)
+    if err then
+      jsonResponse.error = "Failed to parse JSON POST data: " .. err
     else
-      local callResult = { pcall( method, unpack( jsonRequest.params ) ) }
-      if callResult[1] then -- Function call successfull
-        table.remove(callResult,1)
-        if packReturn and table.getn(callResult)>1 then
-          jsonResponse.result = callResult
-        else
-          jsonResponse.result = unpack(callResult)  -- NB: Does not support multiple argument returns
-        end
+      jsonResponse.id = jsonRequest.id
+      local method = luaClass[ jsonRequest.method ]
+    
+      if not method then
+        jsonResponse.error = 'Method ' .. jsonRequest.method .. ' does not exist at this server.'
+      elseif type(jsonRequest.params) ~= "table" then
+        jsonResponse.error = 'Invalid method parameters list "' .. cjson_safe.encode(jsonRequest.params) .. '".'
       else
-        jsonResponse.error = callResult[2]
+        local callResult = { pcall( method, unpack( jsonRequest.params ) ) }
+        if callResult[1] then -- Function call successfull
+          table.remove(callResult,1)
+          if packReturn and table.getn(callResult)>1 then
+            jsonResponse.result = callResult
+          else
+            jsonResponse.result = unpack(callResult)  -- NB: Does not support multiple argument returns
+          end
+        else
+          jsonResponse.error = callResult[2]
+        end
       end
-    end 
+    end
   end
   
   -- Output the result
-  -- TODO: How to be sure that the result and error tags are there even when they are nil in Lua?
-  -- Can force them by hand... ?
-  cgilua.put( json.encode( jsonResponse ) )
+  local data, err = cjson_safe.encode( jsonResponse )
+  if data == nil then
+    jsonResponse.result = nil
+    jsonResponse.error = "Failed to encode JSON response: " .. err
+    data = cjson_safe.encode( jsonResponse )
+  end
+  cgilua.put( data )
 end
 
 return rpcserver
