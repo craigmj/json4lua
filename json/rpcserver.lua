@@ -43,7 +43,7 @@ local rpcserver = {}
 --
 function rpcserver.serve(luaClass, packReturn)
   
-  cgilua.contentheader('aplication','json-rpc')
+  cgilua.contentheader('application','json-rpc')
   
   local postData = "{}"
   
