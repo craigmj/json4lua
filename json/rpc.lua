@@ -111,13 +111,17 @@ function rpc.call(url, method, ...)
   end
   -- And decode the httpResponse and check the JSON RPC result code
   result, err = cjson_safe.decode( httpResponse )
-  if result.result then
+  if result and result.result then
     return result.result, nil
   else
     if err then
       return nil, err
     else
-      return nil, result.error
+      if result and result.error then
+        return nil, result.error
+      else
+        return nil, "Unknown error"
+      end
     end
   end
 end
