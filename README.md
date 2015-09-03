@@ -12,7 +12,7 @@ Optional requirement to run the server-side example:
 
 ## Installation
 ```
-luarocks --local install https://raw.githubusercontent.com/pdxmeshnet/jsonrpc4lua/master/jsonrpc4lua-1.0.0-1.rockspec
+luarocks --local install jsonrpc4lua
 ```
 
 ## Required CGILua Fix
