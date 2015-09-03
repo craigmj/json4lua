@@ -22,14 +22,16 @@
 --  compat-5.1 if using Lua 5.0.
 -----------------------------------------------------------------------------
 
-local json = require('json')
-json.rpc = {}     -- Module public namespace
+--- @module json.rpc
+local rpc = {}     -- Module public namespace
 
 -----------------------------------------------------------------------------
 -- Imports and dependencies
 -----------------------------------------------------------------------------
-local json = require('json')
+local cjson_safe = require("cjson.safe")
 local http = require("socket.http")
+
+local socketTimeout = 5
 
 -----------------------------------------------------------------------------
 -- PUBLIC functions
@@ -43,17 +45,23 @@ local http = require("socket.http")
 --   print(jsolait.echo('This is a test of the echo method!'))
 --   print(jsolait.args2String('first','second','third'))
 --   table.foreachi( jsolait.args2Array(5,4,3,2,1), print)
-function json.rpc.proxy(url)
+function rpc.proxy(url)
   local serverProxy = {}
   local proxyMeta = {
     __index = function(self, key)
       return function(...)
-        return json.rpc.call(url, key, ...)
+        return rpc.call(url, key, ...)
       end
     end
   }
   setmetatable(serverProxy, proxyMeta)
   return serverProxy
+end
+
+--- Sets connection timeout
+-- @param timeout The number of seconds to wait for connection
+function rpc.setTimeout(timeout)
+	socketTimeout = timeout
 end
 
 --- Calls a JSON RPC method on a remote server.
@@ -69,20 +77,25 @@ end
 -- are nil, this means that the result of the RPC call was nil.
 -- EXAMPLE Usage:
 --   print(json.rpc.call('http://jsolait.net/testj.py','echo','This string will be returned'))
-function json.rpc.call(url, method, ...)
+function rpc.call(url, method, ...)
   local JSONRequestArray = {
     id=tostring(math.random()),
     ["method"]=method,
-    params = ...
+    params = {...}
   }
   local httpResponse, result , code
-  local jsonRequest = json.encode(JSONRequestArray)
+  local jsonRequest, err = cjson_safe.encode(JSONRequestArray)
+  if jsonRequest == nil then
+    return nil, err
+  end 
   -- We use the sophisticated http.request form (with ltn12 sources and sinks) so that
-  -- we can set the content-type to text/plain. While this shouldn't strictly-speaking be true,
-  -- it seems a good idea (Xavante won't work w/out a content-type header, although a patch
-  -- is needed to Xavante to make it work with text/plain)
+  -- we can set the content-type to application/json-rpc. While this shouldn't strictly-speaking be true,
+  -- it seems a good idea.
+  -- cgilua does not support application/json-rpc at the moment of this writing
+  -- fix: https://github.com/pdxmeshnet/cgilua/commit/1b35d812c7d637b91f2ac0a8d91f9698ba84d8d9
   local ltn12 = require('ltn12')
   local resultChunks = {}
+  http.TIMEOUT = socketTimeout
   httpResponse, code = http.request(
     { ['url'] = url,
       sink = ltn12.sink.table(resultChunks),
@@ -97,10 +110,20 @@ function json.rpc.call(url, method, ...)
     return nil, "HTTP ERROR: " .. code
   end
   -- And decode the httpResponse and check the JSON RPC result code
-  result = json.decode( httpResponse )
-  if result.result then
+  result, err = cjson_safe.decode( httpResponse )
+  if result and result.result then
     return result.result, nil
   else
-    return nil, result.error
+    if err then
+      return nil, err
+    else
+      if result and result.error then
+        return nil, result.error
+      else
+        return nil, "Unknown error"
+      end
+    end
   end
 end
+
+return rpc
