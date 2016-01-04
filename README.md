@@ -24,14 +24,17 @@ print(json.encode({ 1, 2, 'fred', {first='mars',second='venus',third='earth'} })
 json = require("json")
 testString = [[ { "one":1 , "two":2, "primes":[2,3,5,7] } ]]
 decoded = json.decode(testString)
-table.foreach(decoded, print)
+for key, item pairs(decoded) do
+    print(key, item)
+end
 print ("Primes are:")
-table.foreach(o.primes,print)
+for key, item ipairs(decoded.primes) do
+    print(key, item)
+end
 ```
 ```
 one		1
 two		2
-primes		table: 0032B928
 Primes are:
 1		2
 2		3

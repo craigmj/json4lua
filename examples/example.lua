@@ -18,6 +18,10 @@ print('JSON encoded test is: ' .. jsonTest)
 result = json.decode(jsonTest)
 
 print ("The decoded table result:")
-table.foreach(result,print)
+for key, item in pairs(result) do
+    print(key, item)
+end
 print ("The decoded table result.three")
-table.foreach(result.three, print)
+for i, item in ipairs(result.three) do
+    print(i, item)
+end
