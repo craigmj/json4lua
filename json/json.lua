@@ -137,7 +137,7 @@ function json.decode(s, startPos)
     return decode_scanString(s,startPos)
   end
   if string.sub(s,startPos,startPos+1)=='/*' then
-    return decode(s, decode_scanComment(s,startPos))
+    return json.decode(s, decode_scanComment(s,startPos))
   end
   -- Otherwise, it must be a constant
   return decode_scanConstant(s,startPos)
@@ -161,6 +161,7 @@ end
 -- @param startPos The starting position for the scan.
 -- @return table, int The scanned array as a table, and the position of the next character to scan.
 function decode_scanArray(s,startPos)
+  local object = {}
   local array = {}	-- The return value
   local stringLen = string.len(s)
   assert(string.sub(s,startPos,startPos)=='[','decode_scanArray called but array does not start at position ' .. startPos .. ' in string:\n'..s )
