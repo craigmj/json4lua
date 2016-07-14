@@ -39,6 +39,10 @@ local table = require("table")
 local json = {}             -- Public namespace
 local json_private = {}     -- Private namespace
 
+-- Public constants                                                            
+json.EMPTY_ARRAY={}                                                           
+json.EMPTY_OBJECT={}
+
 -- Public functions
 
 -- Private functions
@@ -388,6 +392,9 @@ end
 function isArray(t)
   -- Next we count all the elements, ensuring that any non-indexed elements are not-encodable 
   -- (with the possible exception of 'n')
+  if (t == json.EMPTY_ARRAY) then return true, 0 end
+  if (t == json.EMPTY_OBJECT) then return false end
+  
   local maxIndex = 0
   for k,v in pairs(t) do
     if (type(k)=='number' and math.floor(k)==k and 1<=k) then	-- k,v is an indexed pair
