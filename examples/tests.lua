@@ -102,6 +102,17 @@ function testJSON4Lua()
   -- NB: This test can fail because of order: need to test further once
   -- decoding is supported.
   -- assert(r==[[{"age":35,"Name":"Craig","email":"craig@lateral.co.za"}]])
+
+  -- Test encoding tables with numeric (string) indexes
+  s = {}
+  s['1']='One'
+  r = json.encode(s)
+  -- print("r = ", r)
+  assert(r=='{"1":"One"}')
+
+  s['2']= {One='Uno'}
+  r = json.encode(s)
+  assert(compareData(json.decode(r), s))
   
   -- Test decode_scanWhitespace
   if nil then
@@ -122,7 +133,6 @@ function testJSON4Lua()
   s = [["Test\u00A7\\"]]
   r,e = json._decode_scanString(s,1)
   assert(r=="Test\xC2\xA7\\" and e==9)
-  print(s,r)
   
   -- Test decode_scanNumber
   s = [[354]]
@@ -165,14 +175,13 @@ function testJSON4Lua()
   s = [["Test\u00A7\\\""]]
   r,e = json.decode(s)
   assert(r=="Test\xC2\xA7\\\"", r)
-  print(s,r)
 
   -- Test decode_scanObject
   s = [[ {"one":1, "two":2, "three":"three", "four":true} ]]
   r,e = json.decode(s)
-  for x,y in pairs(r) do
-    print(x,y)
-  end
+  -- for x,y in pairs(r) do
+  --   print(x,y)
+  -- end
   assert(compareData(r,{one=1,two=2,three='three',four=true}))
   s = [[ { "one" : { "first":1,"second":2,"third":3}, "two":2, "three":false } ]]
   r,e = json.decode(s)
@@ -198,6 +207,15 @@ function testJSON4Lua()
       ]]
   r,e = json.decode(s)
   assert(r=='test',"Comment decoding failed")
+
+  -- Per error reported by M.Hund, with incorrect decoding of string-numbered tables
+  s = {}
+  subt = {a="a",b="b",c="c"}
+  s['1'] = subt
+  s['2'] = subt
+  s['3'] = subt
+  r = json.decode('{"1":{"a":"a","b":"b","c":"c"},"2":{"a":"a","b":"b","c":"c"},"3":{"a":"a","b":"b","c":"c"}}')
+  assert(compareData(s, r))
 end
 
 testJSON4Lua()

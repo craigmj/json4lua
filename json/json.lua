@@ -105,7 +105,7 @@ function json.encode (v)
   end
   
   -- Handle null values
-  if vtype=='function' and v==null then
+  if vtype=='function' and v==json.null then
     return 'null'
   end
   
@@ -141,7 +141,7 @@ function json.decode(s, startPos)
     return decode_scanString(s,startPos)
   end
   if string.sub(s,startPos,startPos+1)=='/*' then
-    return decode(s, decode_scanComment(s,startPos))
+    return json.decode(s, decode_scanComment(s,startPos))
   end
   -- Otherwise, it must be a constant
   return decode_scanConstant(s,startPos)
@@ -149,8 +149,8 @@ end
 
 --- The null function allows one to specify a null value in an associative array (which is otherwise
 -- discarded if you set the value with 'nil' in Lua. Simply set t = { first=json.null }
-function null()
-  return null -- so json.null() will also return null ;-)
+function json.null()
+  return json.null -- so json.null() will also return null ;-)
 end
 -----------------------------------------------------------------------------
 -- Internal, PRIVATE functions.
@@ -418,7 +418,8 @@ end
 -- @return boolean True if the object should be JSON encoded, false if it should be ignored.
 function isEncodable(o)
   local t = type(o)
-  return (t=='string' or t=='boolean' or t=='number' or t=='nil' or t=='table') or (t=='function' and o==null) 
+  return (t=='string' or t=='boolean' or t=='number' or t=='nil' or t=='table') or
+     (t=='function' and o==json.null) 
 end
 
 return json
