@@ -402,7 +402,7 @@ function isArray(t)
       maxIndex = math.max(maxIndex,k)
     else
       if (k=='n') then
-        if v ~= table.getn(t) then return false end  -- False if n does not hold the number of elements
+        if v ~= (t.n or #t) then return false end  -- False if n does not hold the number of elements
       else -- Else of (k=='n')
         if isEncodable(v) then return false end
       end  -- End of (k~='n')
