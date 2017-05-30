@@ -170,6 +170,7 @@ function decode_scanArray(s,startPos)
   assert(string.sub(s,startPos,startPos)=='[','decode_scanArray called but array does not start at position ' .. startPos .. ' in string:\n'..s )
   startPos = startPos + 1
   -- Infinite loop for array elements
+  local index = 0
   repeat
     startPos = decode_scanWhitespace(s,startPos)
     assert(startPos<=stringLen,'JSON String ended unexpectedly scanning array.')
@@ -182,7 +183,8 @@ function decode_scanArray(s,startPos)
     end
     assert(startPos<=stringLen, 'JSON String ended unexpectedly scanning array.')
     object, startPos = json.decode(s,startPos)
-    table.insert(array,object)
+    array[index] = object
+    index = index + 1
   until false
 end
 
