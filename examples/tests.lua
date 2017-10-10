@@ -194,7 +194,7 @@ function testJSON4Lua()
   -- Test json.null management
   t = { 1,2,json.null,4 }
   assert( json.encode(t)=="[1,2,null,4]" )
-  t = {x=json.null }
+  t = {x=null }
   r = json.encode(t)
   assert( json.encode(t) == '{"x":null}' )
   

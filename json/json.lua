@@ -165,6 +165,7 @@ end
 -- @param startPos The starting position for the scan.
 -- @return table, int The scanned array as a table, and the position of the next character to scan.
 function decode_scanArray(s,startPos)
+  local object = {}
   local array = {}	-- The return value
   local stringLen = string.len(s)
   assert(string.sub(s,startPos,startPos)=='[','decode_scanArray called but array does not start at position ' .. startPos .. ' in string:\n'..s )
