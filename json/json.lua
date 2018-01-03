@@ -284,7 +284,8 @@ local escapeSequences = {
   ["\\f"] = "\f",
   ["\\r"] = "\r",
   ["\\n"] = "\n",
-  ["\\b"] = "\b"
+  ["\\b"] = "\b",
+  ["\\/"] = "/"
 }
 setmetatable(escapeSequences, {__index = function(t,k)
   -- skip "\" aka strip escape
