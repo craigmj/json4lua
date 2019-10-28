@@ -31,7 +31,8 @@
 -----------------------------------------------------------------------------
 local math = require('math')
 local string = require("string")
-local table = require("table")
+local table  = require("table")
+local load   = (_VERSION == "Lua 5.1") and loadstring or load
 
 -----------------------------------------------------------------------------
 -- Module declaration
@@ -326,17 +327,17 @@ function decode_scanString(s,startPos)
       -- a % 2^b == bitwise_and(a, (2^b)-1)
       -- 64 = 2^6
       -- 4096 = 2^12 (or 2^6 * 2^6)
-      local x
+      local z
       if n < 0x80 then
-        x = string.char(n % 0x80)
+        z = string.char(n % 0x80)
       elseif n < 0x800 then
         -- [110x xxxx] [10xx xxxx]
-        x = string.char(0xC0 + (math.floor(n/64) % 0x20), 0x80 + (n % 0x40))
+        z = string.char(0xC0 + (math.floor(n/64) % 0x20), 0x80 + (n % 0x40))
       else
         -- [1110 xxxx] [10xx xxxx] [10xx xxxx]
-        x = string.char(0xE0 + (math.floor(n/4096) % 0x10), 0x80 + (math.floor(n/64) % 0x40), 0x80 + (n % 0x40))
+        z = string.char(0xE0 + (math.floor(n/4096) % 0x10), 0x80 + (math.floor(n/64) % 0x40), 0x80 + (n % 0x40))
       end
-      table.insert(t, x)
+      table.insert(t, z)
     else
       table.insert(t, escapeSequences[string.sub(s, i, j)])
     end
@@ -379,7 +380,7 @@ local escapeList = {
 }
 
 function json_private.encodeString(s)
- local s = tostring(s)
+ s = tostring(s)
  return s:gsub(".", function(c) return escapeList[c] end) -- SoniEx2: 5.0 compat
 end
 
