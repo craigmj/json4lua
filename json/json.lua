@@ -410,6 +410,9 @@ function isArray(t)
       end  -- End of (k~='n')
     end -- End of k,v not an indexed pair
   end  -- End of loop across all pairs
+  if maxIndex ~= #t then
+    return false
+  end
   return true, maxIndex
 end
 
