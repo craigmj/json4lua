@@ -3,7 +3,7 @@
 -- json Module.
 -- Author: Craig Mason-Jones
 -- Homepage: http://github.com/craigmj/json4lua/
--- Version: 1.0.0
+-- Version: 1.0.1
 -- This module is released under the MIT License (MIT).
 -- Please see LICENCE.txt for details.
 --
@@ -18,6 +18,8 @@
 --   compat-5.1 if using Lua 5.0
 --
 -- CHANGELOG
+--    1.0.1 Introduced set_plugin_info call to register plugin details for Wireshark. Per
+--          suggestion by T. Lerman.
 --   0.9.20 Introduction of local Lua functions for private functions (removed _ function prefix). 
 --          Fixed Lua 5.1 compatibility issues.
 --   		Introduced json.null to have null values in associative arrays.
@@ -424,4 +426,17 @@ function isEncodable(o)
      (t=='function' and o==json.null) 
 end
 
+-----------------------------------------------------------------------------
+-- Display version information for Wireshark
+-----------------------------------------------------------------------------
+if set_plugin_info~=nil then
+  local plugin_info = {
+    version = "1.0.1",
+    author = "Craig Mason-Jones",
+    repository = "https://github.com/craigmj/json4lua"
+  }
+  set_plugin_info(plugin_info)
+end
+
 return json
+
